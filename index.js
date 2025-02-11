@@ -1,6 +1,24 @@
 const express = require('express');
+const session = require('express-session');
+const Keycloak = require('keycloak-connect');
 const db = require('./database');
 const app = express();
+
+// Configuration de la session
+const memoryStore = new session.MemoryStore();
+app.use(session({
+    secret: 'secret-key',  // Remplace par une clé plus sécurisée
+    resave: false,
+    saveUninitialized: true,
+    store: memoryStore
+}));
+
+// Configuration Keycloak avec le fichier JSON
+const keycloak = new Keycloak({ store: memoryStore }, './keycloak-config.json');
+
+// Utilisation du middleware Keycloak
+app.use(keycloak.middleware());
+
 app.use(express.json());
 
 const PORT = 3000;
@@ -10,7 +28,7 @@ app.get('/', (req, res) => {
 });
 
 // Récupérer toutes les personnes
-app.get('/personnes', (req, res) => {
+app.get('/personnes', keycloak.protect(), (req, res) => {  // Route sécurisée
     db.all("SELECT * FROM personnes", [], (err, rows) => {
         if (err) {
             res.status(400).json({ "error": err.message });
@@ -21,7 +39,7 @@ app.get('/personnes', (req, res) => {
 });
 
 // Récupérer une personne par ID
-app.get('/personnes/:id', (req, res) => {
+app.get('/personnes/:id', keycloak.protect(), (req, res) => {  // Route sécurisée
     const id = req.params.id;
     db.get("SELECT * FROM personnes WHERE id = ?", [id], (err, row) => {
         if (err) {
@@ -33,7 +51,7 @@ app.get('/personnes/:id', (req, res) => {
 });
 
 // Créer une nouvelle personne (avec nom et adresse)
-app.post('/personnes', (req, res) => {
+app.post('/personnes', keycloak.protect(), (req, res) => {  // Route sécurisée
     const { nom, adresse } = req.body;
 
     if (!nom || !adresse) {
@@ -51,7 +69,7 @@ app.post('/personnes', (req, res) => {
 });
 
 // Mettre à jour une personne (nom et/ou adresse)
-app.put('/personnes/:id', (req, res) => {
+app.put('/personnes/:id', keycloak.protect(), (req, res) => {  // Route sécurisée
     const id = req.params.id;
     const { nom, adresse } = req.body;
 
@@ -74,9 +92,8 @@ app.put('/personnes/:id', (req, res) => {
     );
 });
 
-
 // Supprimer une personne
-app.delete('/personnes/:id', (req, res) => {
+app.delete('/personnes/:id', keycloak.protect(), (req, res) => {  // Route sécurisée
     const id = req.params.id;
     db.run(`DELETE FROM personnes WHERE id = ?`, id, function(err) {
         if (err) {
