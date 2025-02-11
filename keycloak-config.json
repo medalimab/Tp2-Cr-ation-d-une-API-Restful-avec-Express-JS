@@ -1,0 +1,10 @@
+{
+    "realm": "mon-realm",  
+    "auth-server-url": "http://localhost:8080/auth", 
+    "resource": "mon-client", 
+    "credentials": {
+      "secret": "mon-secret-api"  
+    },
+    "confidential-port": 0  
+  }
+  
